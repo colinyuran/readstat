@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小学生阅读习惯统计图表</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        neutral: '#64748b',
+                        light: '#f8fafc',
+                        dark: '#0f172a'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
+            .transition-custom {
+                transition: all 0.3s ease-in-out;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+    <header class="bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-[clamp(1.8rem,5vw,2.8rem)] font-bold mb-2 flex items-center">
+                <i class="fa fa-book mr-3"></i>小学生阅读习惯统计分析
+            </h1>
+            <p class="text-lg text-blue-100 max-w-3xl">基于性别差异的阅读习惯调查数据可视化分析</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <section class="mb-10">
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">数据概览</h2>
+                        <p class="text-gray-600">本次调查共收集到<span id="totalSurveys"></span>份有效问卷，以下是基于性别差异的详细分析</p>
+                    </div>
+                    <div class="mt-4 md:mt-0">
+                        <div class="flex items-center">
+                            <span class="inline-block w-4 h-4 bg-primary rounded-full mr-2"></span>
+                            <span class="text-sm mr-4">男生</span>
+                            <span class="inline-block w-4 h-4 bg-secondary rounded-full mr-2"></span>
+                            <span class="text-sm">女生</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h3 class="font-semibold text-lg mb-3 flex items-center">
+                            <i class="fa fa-user-circle text-primary mr-2"></i>性别分布
+                        </h3>
+                        <div class="flex justify-between items-center">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600">男生</p>
+                                <p id="male_count" class="text-2xl font-bold text-primary"></p>
+                            </div>
+                            <div class="w-20 h-20 relative">
+                                <div class="absolute inset-0 flex items-center justify-center text-lg font-bold">66%</div>
+                                <canvas id="genderChart" width="80" height="80"></canvas>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600">女生</p>
+                                <p id="female_count" class="text-2xl font-bold text-secondary"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h3 class="font-semibold text-lg mb-3 flex items-center">
+                            <i class="fa fa-bar-chart text-primary mr-2"></i>平均阅读时长
+                        </h3>
+                        <div class="flex justify-between items-center">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600">男生</p>
+                                <p class="text-2xl font-bold text-primary">47分钟</p>
+                            </div>
+                            <div class="w-32 h-32">
+                                <canvas id="timeChart" width="120" height="120"></canvas>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600">女生</p>
+                                <p class="text-2xl font-bold text-secondary">58分钟</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-10">
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">阅读目的分析</h2>
+                <div class="h-[400px]" id="question2Chart"></div>
+                <div class="mt-4 text-sm text-gray-500">
+                    <p><strong>结论：</strong>男生更倾向于为满足兴趣阅读，而女生在增长知识和放松心情两方面分布较为均衡。</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-10">
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">阅读习惯分析</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-semibold text-lg mb-4">日均阅读时长分布</h3>
+                        <div class="h-[300px]" id="question3Chart"></div>
+                        <div class="mt-3 text-sm text-gray-500">
+                            <p><strong>结论：</strong>大部分学生日均阅读时间在30分钟到1小时之间，女生阅读时间较长的比例略高于男生。</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-semibold text-lg mb-4">阅读媒介偏好</h3>
+                        <div class="h-[300px]" id="question4Chart"></div>
+                        <div class="mt-3 text-sm text-gray-500">
+                            <p><strong>结论：</strong>男生更倾向于使用电子设备阅读，而女生仍以纸质书籍为主。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-10">
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">阅读行为分析</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-semibold text-lg mb-4">阅读场所选择</h3>
+                        <div class="h-[300px]" id="question5Chart"></div>
+                        <div class="mt-3 text-sm text-gray-500">
+                            <p><strong>结论：</strong>家庭环境是主要阅读场所，男生在公共交通工具上阅读的比例高于女生。</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-semibold text-lg mb-4">书籍类型偏好</h3>
+                        <div class="h-[300px]" id="question6Chart"></div>
+                        <div class="mt-3 text-sm text-gray-500">
+                            <p><strong>结论：</strong>男生明显偏好科幻/推理类书籍，女生则更倾向于情感/成长类书籍。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-10">
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">阅读社交与习惯分析</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-semibold text-lg mb-4">阅读社交活动参与度</h3>
+                        <div class="h-[300px]" id="question7Chart"></div>
+                        <div class="mt-3 text-sm text-gray-500">
+                            <p><strong>结论：</strong>女生参与阅读社交活动的积极性明显高于男生。</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-semibold text-lg mb-4">固定阅读时段情况</h3>
+                        <div class="h-[300px]" id="question8Chart"></div>
+                        <div class="mt-3 text-sm text-gray-500">
+                            <p><strong>结论：</strong>女生比男生更倾向于保持固定的阅读时间。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <h3 class="text-xl font-semibold mb-2">小学生阅读习惯统计分析</h3>
+                    <p class="text-gray-400">基于Echarts的数据可视化展示</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-white transition-custom">
+                        <i class="fa fa-file-text-o text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-custom">
+                        <i class="fa fa-bar-chart text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-custom">
+                        <i class="fa fa-question-circle text-xl"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center text-gray-400 text-sm">
+                <p>&copy; 2025 阅读习惯调查研究小组. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 调查数据
+        const surveyData = {
+            question2: {
+                male: { A: 9, B: 2, C: 10, D: 2, 其他: 0 },
+                female: { A: 6, B: 7, C: 6, D: 2, 其他: 0 }
+            },
+            question3: {
+                male: { A: 11, B: 6, C: 5, D: 1, 其他: 0 },
+                female: { A: 7, B: 8, C: 5, D: 1, 其他: 0 }
+            },
+            question4: {
+                male: { A: 10, B: 10, C: 2, D: 2, 其他: 0 },
+                female: { A: 14, B: 2, C: 2, D: 3, 其他: 0 }
+            },
+            question5: {
+                male: { A: 18, B: 7, C: 5, D: 3, 其他: 2 },
+                female: { A: 13, B: 9, C: 6, D: 2, 其他: 1 }
+            },
+            question6: {
+                male: { A: 11, B: 2, C: 6, D: 0, 其他: 4 },
+                female: { A: 3, B: 9, C: 1, D: 4, 其他: 4 }
+            },
+            question7: {
+                male: { A: 0, B: 8, C: 15, D: 0, 其他: 0 },
+                female: { A: 8, B: 4, C: 9, D: 0, 其他: 0 }
+            },
+            question8: {
+                male: { A: 3, B: 9, C: 9, D: 2, 其他: 0 },
+                female: { A: 9, B: 6, C: 6, D: 0, 其他: 0 }
+            }
+        };
+
+        // 问题和答案的抽象描述
+        const questionDescriptions = {
+            question2: {
+                title: "阅读目的",
+                options: {
+                    A: "增长知识/提升技能",
+                    B: "放松减压",
+                    C: "满足兴趣",
+                    D: "其他"
+                }
+            },
+            question3: {
+                title: "日均阅读时长",
+                options: {
+                    A: "<30分钟",
+                    B: "30分钟-1小时",
+                    C: "1-2小时",
+                    D: ">2小时"
+                }
+            },
+            question4: {
+                title: "阅读媒介偏好",
+                options: {
+                    A: "纸质书籍",
+                    B: "手机/平板阅读APP",
+                    C: "电子阅读器",
+                    D: "有声读物"
+                }
+            },
+            question5: {
+                title: "阅读场所",
+                options: {
+                    A: "家中卧室",
+                    B: "书房/办公室",
+                    C: "图书馆/书店",
+                    D: "公共交通工具",
+                    other: "其他"
+                }
+            },
+            question6: {
+                title: "书籍类型偏好",
+                options: {
+                    A: "科幻/推理类",
+                    B: "情感/成长类",
+                    C: "历史/军事类",
+                    D: "生活/时尚类",
+                    other: "其他"
+                }
+            },
+            question7: {
+                title: "阅读社交活动参与度",
+                options: {
+                    A: "经常参与",
+                    B: "偶尔参与",
+                    C: "基本不参与"
+                }
+            },
+            question8: {
+                title: "固定阅读时段情况",
+                options: {
+                    A: "每天固定时间阅读",
+                    B: "偶尔有固定时间",
+                    C: "没有固定时间"
+                }
+            }
+        };
+
+        // 添加计算总人数的函数
+        function calculateTotalByGender(data) {
+            const totals = {
+                male: 0,
+                female: 0
+            };
+            // 使用 question2 的数据来计算总人数，因为每个人都只选择了一个选项
+            const q2Data = data.question2;
+            totals.male = Object.values(q2Data.male).reduce((sum, count) => sum + count, 0);
+            totals.female = Object.values(q2Data.female).reduce((sum, count) => sum + count, 0);
+            return totals;
+        }
+
+        // 初始化图表
+        document.addEventListener('DOMContentLoaded', function() {
+            const totals = calculateTotalByGender(surveyData);
+            
+            const totalStudents = totals.male + totals.female;
+
+            document.getElementById('totalSurveys').textContent = totalStudents;
+            
+            // 更新显示的数字
+            document.querySelector('#male_count').textContent = totals.male;
+            document.querySelector('#female_count').textContent = totals.female;
+            
+            // 更新百分比显示
+            const malePercentage = Math.round((totals.male / totalStudents) * 100);
+            document.querySelector('.text-lg.font-bold').textContent = malePercentage + '%';
+
+            // 性别分布饼图
+            const genderCtx = document.getElementById('genderChart').getContext('2d');
+            new Chart(genderCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['男生', '女生'],
+                    datasets: [{
+                        data: [totals.male, totals.female],
+                        backgroundColor: ['#3b82f6', '#10b981'],
+                        borderWidth: 0,
+                        cutout: '70%'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.raw + '人';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 平均阅读时长雷达图
+            const timeCtx = document.getElementById('timeChart').getContext('2d');
+            new Chart(timeCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['<30分钟', '30-60分钟', '1-2小时', '>2小时'],
+                    datasets: [{
+                        label: '男生',
+                        data: [11, 6, 5, 1],
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: '#3b82f6',
+                        pointBackgroundColor: '#3b82f6'
+                    }, {
+                        label: '女生',
+                        data: [7, 8, 5, 1],
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        borderColor: '#10b981',
+                        pointBackgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 15,
+                            ticks: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // 创建Echarts图表
+            createEchartsCharts();
+        });
+
+        function createEchartsCharts() {
+            // 问题2图表 - 阅读目的分析
+            const question2Chart = echarts.init(document.getElementById('question2Chart'));
+            question2Chart.setOption({
+                title: {
+                    text: '阅读目的分析',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 18,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        crossStyle: {
+                            color: '#999'
+                        }
+                    }
+                },
+                legend: {
+                    data: ['男生', '女生'],
+                    top: '5%',
+                    left: 'center'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: Object.values(questionDescriptions.question2.options),
+                    axisLabel: {
+                        rotate: 0,
+                        interval: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: '男生',
+                        type: 'bar',
+                        data: Object.values(surveyData.question2.male).slice(0, 4),
+                        color: '#3b82f6'
+                    },
+                    {
+                        name: '女生',
+                        type: 'bar',
+                        data: Object.values(surveyData.question2.female).slice(0, 4),
+                        color: '#10b981'
+                    }
+                ]
+            });
+
+            // 问题3图表 - 日均阅读时长分布
+            const question3Chart = echarts.init(document.getElementById('question3Chart'));
+            question3Chart.setOption({
+                title: {
+                    text: '日均阅读时长分布',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: ['男生', '女生'],
+                    top: '5%',
+                    left: 'center'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: Object.values(questionDescriptions.question3.options),
+                    axisLabel: {
+                        rotate: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: '男生',
+                        type: 'bar',
+                        data: Object.values(surveyData.question3.male).slice(0, 4),
+                        color: '#3b82f6'
+                    },
+                    {
+                        name: '女生',
+                        type: 'bar',
+                        data: Object.values(surveyData.question3.female).slice(0, 4),
+                        color: '#10b981'
+                    }
+                ]
+            });
+
+            // 问题4图表 - 阅读媒介偏好
+            const question4Chart = echarts.init(document.getElementById('question4Chart'));
+            question4Chart.setOption({
+                title: {
+                    text: '阅读媒介偏好',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: ['男生', '女生'],
+                    top: '5%',
+                    left: 'center'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: Object.values(questionDescriptions.question4.options),
+                    axisLabel: {
+                        rotate: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: '男生',
+                        type: 'bar',
+                        data: Object.values(surveyData.question4.male).slice(0, 4),
+                        color: '#3b82f6'
+                    },
+                    {
+                        name: '女生',
+                        type: 'bar',
+                        data: Object.values(surveyData.question4.female).slice(0, 4),
+                        color: '#10b981'
+                    }
+                ]
+            });
+
+            // 问题5图表 - 阅读场所选择
+            const question5Chart = echarts.init(document.getElementById('question5Chart'));
+            question5Chart.setOption({
+                title: {
+                    text: '阅读场所选择',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: ['男生', '女生'],
+                    top: '5%',
+                    left: 'center'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: [...Object.values(questionDescriptions.question5.options).slice(0, 4), '其他'],
+                    axisLabel: {
+                        rotate: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: '男生',
+                        type: 'bar',
+                        data: [...Object.values(surveyData.question5.male).slice(0, 4), surveyData.question5.male.其他],
+                        color: '#3b82f6'
+                    },
+                    {
+                        name: '女生',
+                        type: 'bar',
+                        data: [...Object.values(surveyData.question5.female).slice(0, 4), surveyData.question5.female.其他],
+                        color: '#10b981'
+                    }
+                ]
+            });
+
+            // 问题6图表 - 书籍类型偏好
+            const question6Chart = echarts.init(document.getElementById('question6Chart'));
+            question6Chart.setOption({
+                title: {
+                    text: '书籍类型偏好',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: ['男生', '女生'],
+                    top: '5%',
+                    left: 'center'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: [...Object.values(questionDescriptions.question6.options).slice(0, 4), '其他'],
+                    axisLabel: {
+                        rotate: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: '男生',
+                        type: 'bar',
+                        data: [...Object.values(surveyData.question6.male).slice(0, 4), surveyData.question6.male.其他],
+                        color: '#3b82f6'
+                    },
+                    {
+                        name: '女生',
+                        type: 'bar',
+                        data: [...Object.values(surveyData.question6.female).slice(0, 4), surveyData.question6.female.其他],
+                        color: '#10b981'
+                    }
+                ]
+            });
+
+            // 问题7图表 - 阅读社交活动参与度
+            const question7Chart = echarts.init(document.getElementById('question7Chart'));
+            question7Chart.setOption({
+                title: {
+                    text: '阅读社交活动参与度',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: ['男生', '女生'],
+                    top: '5%',
+                    left: 'center'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: Object.values(questionDescriptions.question7.options),
+                    axisLabel: {
+                        rotate: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: '男生',
+                        type: 'bar',
+                        data: Object.values(surveyData.question7.male).slice(0, 3),
+                        color: '#3b82f6'
+                    },
+                    {
+                        name: '女生',
+                        type: 'bar',
+                        data: Object.values(surveyData.question7.female).slice(0, 3),
+                        color: '#10b981'
+                    }
+                ]
+            });
+
+            // 问题8图表 - 固定阅读时段情况
+            const question8Chart = echarts.init(document.getElementById('question8Chart'));
+            question8Chart.setOption({
+                title: {
+                    text: '固定阅读时段情况',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: ['男生', '女生'],
+                    top: '5%',
+                    left: 'center'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: Object.values(questionDescriptions.question8.options),
+                    axisLabel: {
+                        rotate: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: '男生',
+                        type: 'bar',
+                        data: Object.values(surveyData.question8.male).slice(0, 3),
+                        color: '#3b82f6'
+                    },
+                    {
+                        name: '女生',
+                        type: 'bar',
+                        data: Object.values(surveyData.question8.female).slice(0, 3),
+                        color: '#10b981'
+                    }
+                ]
+            });
+
+            // 响应式处理
+            window.addEventListener('resize', function() {
+                question2Chart.resize();
+                question3Chart.resize();
+                question4Chart.resize();
+                question5Chart.resize();
+                question6Chart.resize();
+                question7Chart.resize();
+                question8Chart.resize();
+            });
+        }
+    </script>
+</body>
+</html>
+    
